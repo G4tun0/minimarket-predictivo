@@ -24,7 +24,9 @@ export function useVentas(soloDe?: string) {
 
 /**
  * Registra una compra completa: inserta una fila por item y
- * descuenta el stock de cada producto. Devuelve null si todo ok,
+ * descuenta el stock via la funcion RPC descontar_stock (que corre
+ * con permisos elevados, ya que el cliente no tiene permiso directo
+ * de UPDATE sobre productos por RLS). Devuelve null si todo ok,
  * o un mensaje de error.
  */
 export async function registrarCompra(
@@ -46,13 +48,12 @@ export async function registrarCompra(
   const { error: errVenta } = await supabase.from('ventas').insert(filas);
   if (errVenta) return errVenta.message;
 
-  // 2. Descontar stock producto por producto
+  // 2. Descontar stock producto por producto via RPC (bypassa RLS de forma segura)
   for (const i of items) {
-    const nuevoStock = Math.max(0, i.producto.stock - i.cantidad);
-    const { error } = await supabase
-      .from('productos')
-      .update({ stock: nuevoStock })
-      .eq('id', i.producto.id);
+    const { error } = await supabase.rpc('descontar_stock', {
+      p_producto_id: i.producto.id,
+      p_cantidad: i.cantidad,
+    });
     if (error) return error.message;
   }
 

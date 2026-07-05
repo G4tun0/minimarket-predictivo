@@ -1,14 +1,21 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useProductos } from '../../hooks/use-productos';
 import { Producto } from '../../lib/types';
 
 export default function Catalogo() {
   const { productos, cargando, recargar } = useProductos();
   const [busqueda, setBusqueda] = useState('');
+
+  // Recarga el stock cada vez que se vuelve a esta pestana (ej. tras comprar)
+  useFocusEffect(
+    useCallback(() => {
+      recargar();
+    }, [recargar])
+  );
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();

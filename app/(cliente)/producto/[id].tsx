@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useCart } from '../../../context/cart-context';
 import { Producto } from '../../../lib/types';
@@ -15,17 +15,29 @@ export default function DetalleProducto() {
   const [cantidad, setCantidad] = useState(1);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    supabase
-      .from('productos')
-      .select('*')
-      .eq('id', Number(id))
-      .single()
-      .then(({ data }) => {
-        setProducto(data as Producto);
-        setCargando(false);
-      });
-  }, [id]);
+  // Se re-ejecuta cada vez que la pantalla gana foco, no solo cuando
+  // cambia el id. Asi el stock mostrado nunca queda desactualizado
+  // (ej. entrar, comprar, volver a entrar al mismo producto).
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+      setCargando(true);
+      supabase
+        .from('productos')
+        .select('*')
+        .eq('id', Number(id))
+        .single()
+        .then(({ data }) => {
+          if (!activo) return;
+          setProducto(data as Producto);
+          setCantidad(1); // resetea el contador al reentrar
+          setCargando(false);
+        });
+      return () => {
+        activo = false;
+      };
+    }, [id])
+  );
 
   if (cargando) {
     return (

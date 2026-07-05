@@ -1,10 +1,20 @@
+import { useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useVentas } from '../../hooks/use-ventas';
 import { useAuth } from '../../hooks/use-auth';
 
 export default function Pedidos() {
   const { perfil } = useAuth();
   const { ventas, cargando, recargar } = useVentas(perfil?.correo);
+
+  // Recarga cada vez que esta pestaña gana foco (ej. justo después de comprar),
+  // no solo la primera vez que se monta (Expo Router pre-monta todas las tabs).
+  useFocusEffect(
+    useCallback(() => {
+      recargar();
+    }, [recargar])
+  );
 
   return (
     <FlatList
