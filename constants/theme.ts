@@ -1,53 +1,53 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+export const colors = {
+  primary: '#003D9B',
+  primaryContainer: '#0052CC',
+  onPrimary: '#FFFFFF',
+  secondary: '#4D5F7B',
+  secondaryContainer: '#CBDEFF',
 
-import { Platform } from 'react-native';
+  background: '#F4F7F9',
+  surface: '#FFFFFF',
+  surfaceVariant: '#E1E2EC',
+  surfaceContainer: '#EDEDF8',
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+  onSurface: '#191B23',
+  onSurfaceVariant: '#434654',
+  outline: '#737685',
+  outlineVariant: '#E1E4E8',
 
-export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  success: '#1D9E75',
+  successContainer: '#E1F5EE',
+  onSuccessContainer: '#085041',
+
+  warning: '#BA7517',
+  warningContainer: '#FAEEDA',
+  onWarningContainer: '#633806',
+
+  error: '#BA1A1A',
+  errorContainer: '#FFDAD6',
+  onErrorContainer: '#93000A',
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+export const radius = {
+  sm: 4,
+  md: 6,
+  lg: 8,
+  xl: 12,
+  pill: 999,
+};
+
+export const spacing = {
+  margin: 16,
+  gutter: 12,
+  cardPadding: 16,
+};
+
+export const typography = {
+  displayLg: { fontSize: 30, fontWeight: '600' as const, lineHeight: 38 },
+  headlineMd: { fontSize: 22, fontWeight: '600' as const, lineHeight: 28 },
+  headlineSm: { fontSize: 18, fontWeight: '600' as const, lineHeight: 24 },
+  bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 24 },
+  bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 20 },
+  labelMd: { fontSize: 12, fontWeight: '500' as const, lineHeight: 16, letterSpacing: 0.5 },
+  kpiValue: { fontSize: 28, fontWeight: '700' as const, lineHeight: 32 },
+};
