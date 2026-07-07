@@ -1,96 +1,96 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { useProductos } from '@/hooks/use-productos';
-import { useVentas } from '@/hooks/use-ventas';
-import { useAuth } from '@/hooks/use-auth';
-import { colors, radius, spacing, typography } from '@/constants/theme';
+import { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { useProductos } from '../../hooks/use-productos';
+import { useVentas } from '../../hooks/use-ventas';
+import { calcularCriticidad, COLORES_CRITICIDAD, Criticidad } from '../../lib/types';
 
 export default function Dashboard() {
-  const { usuario } = useAuth();
-  const { productos } = useProductos();
+  const { productos, cargando, recargar } = useProductos();
   const { ventas } = useVentas();
 
-  const stockCritico = productos.filter((p) => p.stock_actual <= p.punto_reorden).length;
-  const ventasHoy = ventas.filter((v) => v.fecha === new Date().toISOString().split('T')[0]);
-  const totalHoy = ventasHoy.reduce((sum, v) => sum + v.cantidad * v.precio_unitario, 0);
+  const kpis = useMemo(() => {
+    const totalProductos = productos.length;
+    const sinStock = productos.filter((p) => p.stock === 0).length;
+    const ingresos = ventas.reduce((acc, v) => acc + Number(v.total), 0);
+    const unidadesVendidas = ventas.reduce((acc, v) => acc + v.cantidad, 0);
+    return { totalProductos, sinStock, ingresos, unidadesVendidas };
+  }, [productos, ventas]);
+
+  const alertas = useMemo(() => {
+    return productos
+      .map((p) => ({ p, nivel: calcularCriticidad(p.stock, p.stock_inicial) }))
+      .filter((x) => x.nivel !== 'OK')
+      .sort((a, b) => orden(a.nivel) - orden(b.nivel));
+  }, [productos]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.greeting}>Hola, {usuario?.nombre ?? 'Administrador'}</Text>
+    <ScrollView
+      style={styles.safe}
+      contentContainerStyle={styles.contenido}
+      refreshControl={<RefreshControl refreshing={cargando} onRefresh={recargar} />}
+    >
+      <Text style={styles.titulo}>Resumen general</Text>
 
-        <View style={styles.kpiRow}>
-          <View style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>VENTAS DE HOY</Text>
-            <Text style={styles.kpiValue}>S/ {totalHoy.toFixed(2)}</Text>
+      <View style={styles.grid}>
+        <Kpi label="Productos" valor={kpis.totalProductos} color="#2563eb" />
+        <Kpi label="Sin stock" valor={kpis.sinStock} color="#dc2626" />
+        <Kpi label="Und. vendidas" valor={kpis.unidadesVendidas} color="#16a34a" />
+        <Kpi label="Ingresos" valor={`S/ ${kpis.ingresos.toFixed(2)}`} color="#7c3aed" />
+      </View>
+
+      <Text style={styles.subtitulo}>Alertas de stock ({alertas.length})</Text>
+      {alertas.length === 0 && (
+        <Text style={styles.vacio}>Todo el inventario esta en niveles saludables ✅</Text>
+      )}
+      {alertas.map(({ p, nivel }) => (
+        <View key={p.id} style={styles.alerta}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.alertaNombre}>{p.nombre}</Text>
+            <Text style={styles.alertaStock}>
+              {p.stock} / {p.stock_inicial} unidades
+            </Text>
           </View>
-          <View style={[styles.kpiCard, stockCritico > 0 && styles.kpiCardAlert]}>
-            <Text style={styles.kpiLabel}>STOCK CRÍTICO</Text>
-            <Text style={[styles.kpiValue, stockCritico > 0 && { color: colors.error }]}>{stockCritico} prods</Text>
+          <View style={[styles.badge, { backgroundColor: COLORES_CRITICIDAD[nivel] }]}>
+            <Text style={styles.badgeTexto}>{nivel}</Text>
           </View>
         </View>
-
-        <Text style={styles.sectionTitle}>Acceso rápido</Text>
-        <View style={styles.grid}>
-          <Pressable style={styles.gridItem} onPress={() => router.push('/(admin)/ventas' as any)}>
-            <Text style={styles.gridLabel}>Registrar venta</Text>
-          </Pressable>
-          <Pressable style={styles.gridItem} onPress={() => router.push('/(admin)/inventario' as any)}>
-            <Text style={styles.gridLabel}>Inventario</Text>
-          </Pressable>
-          <Pressable style={styles.gridItem} onPress={() => router.push('/(admin)/predicciones' as any)}>
-            <Text style={styles.gridLabel}>Predicciones IA</Text>
-          </Pressable>
-          <Pressable style={styles.gridItem}>
-            <Text style={styles.gridLabel}>Órdenes de compra</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.sectionTitle}>Productos con stock crítico</Text>
-        {productos
-          .filter((p) => p.stock_actual <= p.punto_reorden)
-          .map((p) => (
-            <View key={p.id} style={styles.alertRow}>
-              <Text style={styles.alertName}>{p.nombre}</Text>
-              <View style={styles.alertBadge}>
-                <Text style={styles.alertBadgeText}>{p.stock_actual} unid.</Text>
-              </View>
-            </View>
-          ))}
-        {stockCritico === 0 && <Text style={styles.empty}>Sin alertas por ahora</Text>}
-      </ScrollView>
-    </SafeAreaView>
+      ))}
+    </ScrollView>
   );
 }
 
-import { Pressable } from 'react-native';
+function Kpi({ label, valor, color }: { label: string; valor: string | number; color: string }) {
+  return (
+    <View style={styles.kpi}>
+      <Text style={[styles.kpiValor, { color }]}>{valor}</Text>
+      <Text style={styles.kpiLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function orden(n: Criticidad) {
+  return { CRITICO: 0, BAJO: 1, MEDIO: 2, OK: 3 }[n];
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.margin, paddingBottom: 40 },
-  greeting: { ...typography.headlineMd, color: colors.onSurface, marginBottom: 16 },
-  kpiRow: { flexDirection: 'row', gap: spacing.gutter, marginBottom: 20 },
-  kpiCard: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.cardPadding,
-    borderWidth: 1, borderColor: colors.outlineVariant,
+  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  contenido: { padding: 16 },
+  titulo: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  subtitulo: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginTop: 20, marginBottom: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  kpi: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16,
+    width: '47%', borderWidth: 1, borderColor: '#e2e8f0',
   },
-  kpiCardAlert: { borderColor: colors.error, backgroundColor: colors.errorContainer },
-  kpiLabel: { ...typography.labelMd, color: colors.onSurfaceVariant, marginBottom: 6 },
-  kpiValue: { ...typography.kpiValue, color: colors.onSurface },
-  sectionTitle: { ...typography.headlineSm, color: colors.onSurface, marginTop: 8, marginBottom: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.gutter, marginBottom: 20 },
-  gridItem: {
-    width: '47%', backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18,
-    borderWidth: 1, borderColor: colors.outlineVariant, alignItems: 'center', minHeight: 64, justifyContent: 'center',
+  kpiValor: { fontSize: 22, fontWeight: '800' },
+  kpiLabel: { fontSize: 13, color: '#64748b', marginTop: 4 },
+  vacio: { color: '#64748b', fontStyle: 'italic' },
+  alerta: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0',
   },
-  gridLabel: { ...typography.bodyMd, color: colors.primary, fontWeight: '600', textAlign: 'center' },
-  alertRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.outlineVariant,
-  },
-  alertName: { ...typography.bodyMd, color: colors.onSurface },
-  alertBadge: { backgroundColor: colors.warningContainer, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
-  alertBadgeText: { ...typography.labelMd, color: colors.onWarningContainer },
-  empty: { ...typography.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 },
+  alertaNombre: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
+  alertaStock: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  badgeTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
