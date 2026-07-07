@@ -43,6 +43,19 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "264612cb-b07c-4980-9078-f014d473337c"
+      }
+    },
+    "owner": "gatuno",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/264612cb-b07c-4980-9078-f014d473337c"
     }
   }
 }
